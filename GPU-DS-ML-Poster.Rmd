@@ -1,0 +1,342 @@
+---
+main_topsize: 0.13 #percent coverage of the poster
+main_bottomsize: 0.1
+#ESSENTIALS
+author:
+  - name: '**Roshan Joji**'
+    affil: 1
+    main: true
+    email: 'roshan.joji@students.plymouth.ac.uk'
+  - name: '**Kirin Gola**'
+    affil: 1
+    main: true
+    email: 'kirin.gola@students.plymouth.ac.uk'
+  - name: '**Nikhil Roy Sebastian**'
+    affil: 1
+    main: true
+    email: 'nikhil.roysebastian@postgrad.plymouth.ac.uk'
+  - name: '**Jacob Amoah**'
+    affil: 1
+    main: true
+    email: 'jacob.amoah@students.plymouth.ac.uk'
+    
+affiliation:
+  - num: 1
+    address: Poster Group D, School of Engineering, Computing and Mathematics, University of Plymouth
+main_findings:
+  - "**The Role of GPUs in Modern Data Science: Performance, Cost, and Computational Demand**"
+logoleft_name: secamlogo.png
+logoright_name: sande.png
+logocenter_name: 
+output: 
+  posterdown::posterdown_betterport:
+    self_contained: false
+    pandoc_args: --mathjax
+    number_sections: false
+bibliography: packages.bib
+link-citations: true
+knit: pagedown::chrome_print
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(rpart)
+library(randomForest)
+library(class)
+library(ggplot2)
+```
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      tidy = FALSE,
+                      message = FALSE,
+                      fig.align = 'center',
+                      out.width = "100%")
+options(knitr.table.format = "html") 
+```
+
+# Introduction
+
+- Heavy computational power is needed to handle large datasets and train complex models.
+- GPUs are better suited for parallel processing than CPUs, making them very effective for training neural networks, image recognition, and large-scale data analysis [1]. 
+- Such high-performance hardware can be expensive and energy-intensive, raising sustainability and equity issues in the field [2].
+- This poster aims to show how computational demands in machine learning (ML) scale with data size, and how GPU performance, cost, and power characteristics affect modern data science workloads.
+
+```{r, include=FALSE}
+knitr::write_bib(c('posterdown', 'rmarkdown','pagedown'), 'packages.bib')
+```
+
+# Computational Cost of Machine Learning Models
+
+- To investigate computational cost of ML models as dataset size increases, three models were evaluated on synthetic data: Decision Tree, Random Forest, and K-Nearest Neighbours (KNN).
+- Models were trained using 30 repeated timed runs for each dataset size.
+- Time was recorded and averaged to provide a measure of computational cost.
+
+```{r computation cost data synthesis and model training, include=FALSE}
+# Decision Tree
+results <- data.frame()
+
+sizes <- c(1000, 10000, 20000, 30000)
+reps <- 30
+
+for (n in sizes) {
+  
+  for (i in 1:reps) {
+    
+    X <- data.frame(matrix(rnorm(n * 50), nrow = n))
+    y <- sample(c("A", "B"), n, replace = TRUE)
+    df <- data.frame(X, y = as.factor(y))
+    
+    t1 <- system.time({
+      model_dt <- rpart(y ~ ., data = df)
+    })
+    
+    results <- rbind(results,
+                     data.frame(Model = "Decision Tree", Size = n, Time = t1[3]))
+  }
+}
+
+
+results_summary <- results %>%
+  group_by(Model, Size) %>%
+  summarise(Time = mean(Time))
+
+results
+
+ggplot(results_summary, aes(x = Size, y = Time, colour = Model)) +
+  geom_line() +
+  geom_point()
+
+# KNN
+results_knn <- data.frame()
+
+sizes <- c(1000, 10000, 20000, 30000)
+reps <- 30
+
+for (n in sizes) {
+  
+  for (i in 1:reps) {
+    
+    X_knn <- data.frame(matrix(rnorm(n * 50), nrow = n))
+    y_knn <- sample(c("A", "B"), n, replace = TRUE)
+    
+    t_knn <- system.time({
+      pred_knn <- knn(train = X_knn, test = X_knn, cl = y_knn, k = 5)
+    })
+    
+    results_knn <- rbind(results_knn,
+                         data.frame(Model = "KNN", Size = n, Time = t_knn[3]))
+  }
+}
+
+ results_knn_summary <- results_knn %>%
+  group_by(Model, Size) %>%
+  summarise(Time = mean(Time))
+
+results_knn_summary
+
+ggplot(results_knn_summary, aes(x = Size, y = Time, colour = Model)) +
+  geom_line() +
+  geom_point()
+
+# Random Forest
+results_rf <- data.frame()
+
+sizes <- c(1000, 10000, 20000, 30000)
+reps <- 30
+
+for (n in sizes) {
+  
+  for (i in 1:reps) {
+    
+    X_rf <- data.frame(matrix(rnorm(n * 50), nrow = n))
+    y_rf <- sample(c("A", "B"), n, replace = TRUE)
+    df_rf <- data.frame(X_rf, y = as.factor(y_rf))
+    
+    t_rf <- system.time({
+      model_rf <- randomForest(y ~ ., data = df_rf, ntree = 100)
+    })
+    
+    results_rf <- rbind(results_rf,
+                        data.frame(Model = "Random Forest", Size = n, Time = t_rf[3]))
+  }
+}
+
+results_rf_summary <- results_rf %>%
+  group_by(Model, Size) %>%
+  summarise(Time = mean(Time))
+
+results_rf_summary
+
+ggplot(results_rf_summary, aes(x = Size, y = Time, colour = Model)) +
+  geom_line() +
+  geom_point()
+
+# Combine all results
+results_all <- rbind(results_summary, results_knn_summary, results_rf_summary)
+```
+
+```{r, fig.width=8, fig.height=6.5, echo=FALSE, fig.cap="Logarithmic graph of training time for three machine learning models on datasets of increasing magnitude"}
+ggplot(results_all, aes(x = Size, y = Time, colour = Model)) +
+  geom_line(size = 1.6) +
+  geom_point(size = 3) +
+  scale_y_log10() +
+  labs(
+    x = "Dataset Size",
+    y = "Time log10 (s)",
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title = element_text(size = 18, face = "bold"),
+    axis.title.x = element_text(margin = ggplot2::margin(t = 15)),
+    axis.title.y = element_text(margin = ggplot2::margin(r = 15)),
+    axis.text = element_text(size = 16),
+    legend.title = element_text(size = 18, face = "bold"),
+    legend.text = element_text(size = 14),
+    plot.background = element_rect(fill = "#00808010", colour = "white", linewidth = 0.5)
+  )
+```
+
+- Computational cost generally increases with dataset size for all models, although they each scale differently.
+- Minor fluctuations exist (e.g. Decision Tree) but general trend is upwards.
+- As a result, more powerful hardware is required to cope with larger and more complex datasets.
+- GPUs can provide the capability for parallel computations and allow for better performance when training larger, more complex models.
+
+# GPU Performance Over Time
+
+- GPU benchmark scores from 2010-2022 were analysed to observe how computational capability has evolved over time [3].
+
+```{r, fig.width=8, fig.height=6.5, echo=FALSE, fig.cap="Evolution of GPU performance from 2010 - 2022 (Dots represent raw benchmark score data)"}
+gpu <- read_csv("GPU_benchmarks_v7.csv")
+
+# Create summary separately
+gpu_summary <- gpu %>%
+  filter(!is.na(testDate), testDate >= 2010) %>%
+  group_by(testDate) %>%
+  summarise(mean_score = mean(G3Dmark, na.rm = TRUE), .groups = "drop")
+
+p3 <- ggplot() +
+  
+  # Raw data
+  geom_point(
+    data = gpu %>% filter(!is.na(testDate), testDate >= 2010),
+    aes(x = testDate, y = G3Dmark),
+    colour = "#008080",
+    alpha = 0.4,
+    size = 1.5,
+    position = position_jitter(width = 0.1)
+  ) +
+  
+  # Mean line
+  geom_line(
+    data = gpu_summary,
+    aes(x = testDate, y = mean_score),
+    size = 1.6,
+    colour = "#7a2cbf"
+  ) +
+  
+  # Mean points
+  geom_point(
+    data = gpu_summary,
+    aes(x = testDate, y = mean_score),
+    size = 3,
+    colour = "#ff7b00"
+  ) +
+  
+  labs(
+    title = "             ",
+    x = "Year",
+    y = "Average G3DMark Score"
+  ) +
+  
+  scale_x_continuous(breaks = seq(2010, 2022, by = 2)) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title = element_text(size = 18, face = "bold"),
+    axis.title.x = element_text(margin = ggplot2::margin(t = 15)),
+    axis.title.y = element_text(margin = ggplot2::margin(r = 15)),
+    axis.text = element_text(size = 16),
+    plot.background = element_rect(fill = "#00808010", colour = "white", linewidth = 0.5)
+  )
+
+p3
+```
+
+- GPU performance has steadily increased, with peak benchmark scores in 2022 being approx. 7 times higher than in 2010.
+- Modern GPUs are far more capable at large-scale and complex modelling than in the past, allowing them to support the increasing computational demand of modern data science, and assisting in its development.
+
+# Price vs. Performance
+
+- To evaluate how GPU performance scales with cost, benchmark scores were compared against market value [3].
+
+```{r, fig.width=8, fig.height=6.5, echo=FALSE, fig.cap="Relationship between GPU price and performance"}
+p2 <- gpu %>%
+  filter(price > 0, price < 3000) %>%
+  ggplot(aes(x = price, y = G3Dmark)) +
+  geom_point(alpha = 0.7, colour = "#0d58c7", size = 3) +
+  geom_smooth(method = "lm", se = FALSE, colour = "red", linewidth = 1.6) +
+  labs(
+    title = "                     ",
+    x = "Price ($)",
+    y = "G3DMark Score"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title = element_text(size =18, face =  "bold"),
+    axis.title.x = element_text(margin = ggplot2::margin(t = 15)),
+    axis.title.y = element_text(margin = ggplot2::margin(r = 15)),
+    axis.text = element_text(size = 16),
+    plot.background = element_rect(fill = "#00808010", colour = "white", linewidth = 0.5)
+  )
+
+p2
+```
+
+- GPU performance generally increases with price.
+- While the peak of GPU performance is found at the highest price points (≈ 2000 USD), excellent baseline capability is found at lower price levels as well (≈ 800-1000 USD), suggesting that cost does not solely determine performance.
+- Efficient hardware selection can enable strong data science performance without requiring the most expensive GPUs.
+
+# Power vs. Performance
+
+- To evaluate how GPU performance scales with energy usage, thermal design power (TDP) was compared against benchmark scores [3].
+
+```{r, fig.width=8, fig.height=6, echo=FALSE, fig.cap="Relationship between GPU TDP and performance"}
+p4 <- gpu %>%
+  filter(TDP > 0) %>%
+  ggplot(aes(x = TDP, y = G3Dmark)) +
+  geom_point(alpha = 0.7, colour = "#7a2cbf", size = 3) +
+  geom_smooth(method = "lm", se = FALSE, colour = "#ff7b00", linewidth = 1.6) +
+  labs(
+    title = "                   ",
+    x = "TDP (Watts)",
+    y = "G3DMark Score"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title = element_text(size = 18, face = "bold"),
+    axis.title.x = element_text(margin = ggplot2::margin(t = 15)),
+    axis.title.y = element_text(margin = ggplot2::margin(r = 15)),
+    axis.text = element_text(size = 16),
+    plot.background = element_rect(fill = "#00808010", colour = "white", linewidth = 0.5)
+  )
+
+p4
+```
+
+- GPU performance generally increases with power consumption. However, there is substantial variation in performance at similar power usage levels.
+- While peak performance is found at higher power usage, high performance GPUs can be found at moderate TDP levels.
+- Again, efficient hardware selection can allow for effective data science performance without requiring excessive power consumption, thereby reducing costs associated with such.
+
+# Conclusion
+
+- GPUs support modern data science by providing the required processing capabilities needed for complex datasets and models.
+- GPU performance has improved significantly over time, supporting the development and scalability of data science.
+- While peak performance often comes with steep prices, high performance GPUs can be found at lower price points, reducing the issue of equity within the field.
+- The same can be said for energy consumption, as efficient hardware selection can provide high performance with lower energy requirements, addressing sustainability concerns.
+
+# References
+1. Pitta K, Chang S. Basics on NVIDIA GPU Hardware Architecture - HECC Knowledge Base. Nasa.gov. 2025 [cited 2026 Apr 23]. Available from: https://www.nas.nasa.gov/hecc/support/kb/basics-on-nvidia-gpu-hardware-architecture_704.html2.
+2. Harris D. Sustainable Strides: How AI and Accelerated Computing Are Driving Energy Efficiency. NVIDIA Blog. 2024 [cited 2026 Apr 23]. Available from: https://blogs.nvidia.com/blog/accelerated-ai-energy-efficiency/
+3. GPU Benchmarks Compilation. www.kaggle.com. 2022 [cited 2026 Apr 28]. Available from: https://www.kaggle.com/datasets/alanjo/gpu-benchmarks
