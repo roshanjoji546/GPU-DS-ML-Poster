@@ -22,6 +22,7 @@ The project involved:
 The project combined exploratory data analysis, machine learning performance evaluation, benchmark score analysis, and data visualisation to assess the impact of GPU hardware on modern data science applications.
 
 ### Skills Demonstrated
+* R Programming
 * Exploratory Data Analysis
 * Data Visualisation
 * Machine Learning Model Evaluation
