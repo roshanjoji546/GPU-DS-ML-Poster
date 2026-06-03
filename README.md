@@ -20,3 +20,10 @@ The project involved:
 * Interpreting the implications of hardware selection for the scalability, accessibility, and sustainability of data science workloads.
 
 The project combined exploratory data analysis, machine learning performance evaluation, benchmark score analysis, and data visualisation to assess the impact of GPU hardware on modern data science applications.
+
+### Skills Demonstrated
+* Exploratory Data Analysis
+* Data Visualisation
+* Machine Learning Model Evaluation
+* Experimental Design
+* Research Communication
